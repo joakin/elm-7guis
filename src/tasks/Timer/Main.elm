@@ -1,15 +1,14 @@
 module Main exposing (main)
 
 import Browser
-import Browser.Events exposing (onAnimationFrame)
+import Browser.Events exposing (onAnimationFrameDelta)
 import Html exposing (..)
 import Html.Attributes as Attributes exposing (..)
 import Html.Events exposing (..)
 import Round exposing (round)
-import Time exposing (Posix)
 
 
-main : Program Int Model Msg
+main : Program () Model Msg
 main =
     Browser.element
         { init = init
@@ -20,27 +19,22 @@ main =
 
 
 type alias Model =
-    { start : Int, lastTick : Int, size : Float }
+    { elapsed : Float, total : Float }
 
 
 type Msg
-    = Tick Posix
+    = Tick Float
     | SizeInput Float
     | Reset
 
 
-init start =
-    ( { start = start, lastTick = start, size = 15 * 1000 }, Cmd.none )
+init () =
+    ( { elapsed = 0, total = 15 * 1000 }, Cmd.none )
 
 
-subscriptions model =
-    let
-        { progress } =
-            getInfo model
-    in
-    if progress < 100 then
-        -- Time.every 100 Tick
-        onAnimationFrame Tick
+subscriptions { elapsed, total } =
+    if elapsed < total then
+        onAnimationFrameDelta Tick
 
     else
         Sub.none
@@ -48,33 +42,29 @@ subscriptions model =
 
 update msg model =
     case msg of
-        Tick posix ->
-            let
-                currentTime =
-                    Time.posixToMillis posix
-            in
-            ( { model | lastTick = currentTime }, Cmd.none )
+        Tick delta ->
+            ( { model | elapsed = model.elapsed + delta }, Cmd.none )
 
-        SizeInput size ->
-            ( { model | size = size }, Cmd.none )
+        SizeInput total ->
+            ( { model | total = total }, Cmd.none )
 
         Reset ->
-            init model.lastTick
+            init ()
 
 
-getInfo { start, lastTick, size } =
+getInfo { start, lastTick, total } =
     let
         elapsed =
             toFloat (lastTick - start)
     in
-    { elapsed = elapsed / 1000, progress = elapsed * 100 / size }
+    { elapsed = elapsed / 1000, progress = elapsed * 100 / total }
 
 
 view : Model -> Html Msg
-view ({ size } as model) =
+view ({ elapsed, total } as model) =
     let
-        { elapsed, progress } =
-            getInfo model
+        progress =
+            elapsed * 100 / total
     in
     div
         [ style "display" "flex"
@@ -87,13 +77,13 @@ view ({ size } as model) =
             [ span [ style "margin-right" "0.5rem" ] [ text "Elapsed time:" ]
             , progressBar [ style "flex" "1" ] progress
             ]
-        , box [] [ text <| round 1 elapsed ++ "s" ]
+        , box [] [ text <| round 1 (elapsed / 1000) ++ "s" ]
         , box
             [ style "display" "flex"
             , style "align-items" "center"
             ]
             [ span [ style "margin-right" "0.5rem" ] [ text "Duration:" ]
-            , duration [ style "flex" "1" ] size
+            , duration [ style "flex" "1" ] total
             ]
         , box [] [ button [ style "width" "100%", onClick Reset ] [ text "Reset" ] ]
         ]
@@ -114,17 +104,17 @@ progressBar attrs val =
         []
 
 
-duration attrs size =
+duration attrs total =
     input
         ([ type_ "range"
          , Attributes.min "0"
          , Attributes.max "30000"
          , value <|
-            if isInfinite size then
+            if isInfinite total then
                 "30000"
 
             else
-                String.fromFloat size
+                String.fromFloat total
          , step "100"
          , onInput <| SizeInput << (\s -> String.toFloat s |> Maybe.withDefault 0)
          ]
