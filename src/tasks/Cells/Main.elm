@@ -49,7 +49,7 @@ init () =
     ( { editing = Nothing
       , cells =
             Matrix.initialize 100
-                (charToCol 'Z' + 1)
+                (Cell.charToColumn 'Z' + 1)
                 (\({ x, y } as coords) ->
                     let
                         position =
@@ -60,7 +60,7 @@ init () =
                             Cell.heading position ""
 
                         ( _, 0 ) ->
-                            Cell.heading position (String.fromChar (colToChar x))
+                            Cell.heading position (String.fromChar (Cell.columnToChar x))
 
                         ( 0, _ ) ->
                             Cell.heading position (String.fromInt y)
@@ -71,14 +71,6 @@ init () =
       }
     , Cmd.none
     )
-
-
-colToChar col =
-    Char.fromCode (Char.toCode 'A' + col - 1)
-
-
-charToCol char =
-    Char.toCode char - Char.toCode 'A' + 1
 
 
 updateCell : Cell -> String -> Model -> Model

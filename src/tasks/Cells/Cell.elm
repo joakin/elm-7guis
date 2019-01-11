@@ -1,12 +1,15 @@
 module Tasks.Cells.Cell exposing
     ( Cell
     , Position
+    , charToColumn
+    , columnToChar
     , empty
     , fromString
     , heading
     , isAtSamePositionThan
     , position
     , positionFrom
+    , toDisplayString
     , toHtmlId
     , toString
     , view
@@ -16,6 +19,13 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Json.Decode as Decode
+import Parser
+import Regex exposing (Regex)
+import Tasks.Cells.CellParser as CellParser
+    exposing
+        ( Contents(..)
+        , Expression(..)
+        )
 
 
 type alias Position =
@@ -24,14 +34,13 @@ type alias Position =
 
 type alias Cell =
     { position : Position
-    , contents : Contents
+    , contents : CellContents
     }
 
 
-type Contents
-    = Formula String
-    | Text String
-    | Float Float
+type CellContents
+    = Content Contents
+    | Error String (List Parser.DeadEnd)
     | Empty
     | Heading String
 
@@ -61,17 +70,14 @@ empty pos =
     { position = pos, contents = Empty }
 
 
-toString : Cell -> String
-toString { contents } =
+toDisplayString : Cell -> String
+toDisplayString { contents } =
     case contents of
-        Float f ->
-            String.fromFloat f
+        Content content ->
+            contentToString content
 
-        Formula s ->
-            s
-
-        Text s ->
-            s
+        Error input errors ->
+            "#ERROR# " ++ input
 
         Empty ->
             ""
@@ -80,24 +86,79 @@ toString { contents } =
             s
 
 
+toString : Cell -> String
+toString { contents } =
+    case contents of
+        Content content ->
+            (case content of
+                Expr expr ->
+                    "="
+
+                _ ->
+                    ""
+            )
+                ++ contentToString content
+
+        Error input errors ->
+            input
+
+        Empty ->
+            ""
+
+        Heading s ->
+            s
+
+
+contentToString : Contents -> String
+contentToString content =
+    case content of
+        Expr expr ->
+            case expr of
+                EFloat f ->
+                    String.fromFloat f
+
+                EApplication { name, args } ->
+                    name ++ "(" ++ String.join ", " (List.map (Expr >> contentToString) args) ++ ")"
+
+                ECoord { row, column } ->
+                    String.cons column <| String.fromInt row
+
+                ERange { from, to } ->
+                    (String.cons from.column <| String.fromInt from.row)
+                        ++ ":"
+                        ++ (String.cons to.column <| String.fromInt to.row)
+
+        Text s ->
+            s
+
+
+columnToChar col =
+    Char.fromCode (Char.toCode 'A' + col - 1)
+
+
+charToColumn char =
+    Char.toCode char - Char.toCode 'A' + 1
+
+
 fromString : Position -> String -> Cell
-fromString pos input =
+fromString pos input_ =
     { position = pos
-    , contents =
-        if String.isEmpty input then
-            Empty
-
-        else if String.startsWith "=" input then
-            Formula input
-
-        else
-            case String.toFloat input of
-                Just float ->
-                    Float float
-
-                Nothing ->
-                    Text input
+    , contents = parse <| String.trim input_
     }
+
+
+parse : String -> CellContents
+parse input =
+    if String.isEmpty input then
+        Empty
+
+    else
+        case CellParser.parseContents input of
+            Ok contents ->
+                Content contents
+
+            Err errs ->
+                Error input errs
 
 
 toHtmlId : Cell -> String
@@ -198,7 +259,7 @@ view options ({ contents } as cell) =
                 []
 
           else
-            text <| toString cell
+            text <| toDisplayString cell
         ]
 
 
