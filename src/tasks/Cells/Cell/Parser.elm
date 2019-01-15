@@ -1,7 +1,6 @@
-module Tasks.Cells.CellParser exposing
+module Tasks.Cells.Cell.Parser exposing
     ( Application
     , Contents(..)
-    , Coord
     , Expression(..)
     , Range
     , parseContents
@@ -9,26 +8,21 @@ module Tasks.Cells.CellParser exposing
 
 import Parser exposing (..)
 import Set
+import Tasks.Cells.Position as Position exposing (Position)
 
 
-type alias Coord =
-    { column : Char
-    , row : Int
-    }
-
-
-coord : Parser Coord
+coord : Parser Position
 coord =
     succeed
         (\column row ->
-            Coord (String.uncons column |> Maybe.map Tuple.first |> Maybe.withDefault 'A') row
+            Position (String.uncons column |> Maybe.map Tuple.first |> Maybe.withDefault 'A') row
         )
         |= (getChompedString <| succeed () |. chompIf Char.isUpper)
         |= int
 
 
 type alias Range =
-    { from : Coord, to : Coord }
+    { from : Position, to : Position }
 
 
 range : Parser Range
@@ -71,7 +65,7 @@ application =
 type Expression
     = EFloat Float
     | ERange Range
-    | ECoord Coord
+    | ECoord Position
     | EApplication Application
 
 

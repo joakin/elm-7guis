@@ -9,13 +9,14 @@ import Html.Events exposing (..)
 import Html.Keyed as Keyed
 import Json.Decode as Decode
 import Task
-import Tasks.Cells.Cell as Cell exposing (Cell, Position)
+import Tasks.Cells.Cell as Cell exposing (Cell)
+import Tasks.Cells.Cell.Parser exposing (Contents, Expression)
 import Tasks.Cells.Matrix as Matrix exposing (Matrix)
+import Tasks.Cells.Position as Position exposing (Position)
 
 
 {-| TODO:
 
-  - Parse formulas properly
   - Keep track of dependencies in the matrix
   - Update dependents on cell udpate
 
@@ -49,21 +50,21 @@ init () =
     ( { editing = Nothing
       , cells =
             Matrix.initialize 100
-                (Cell.charToColumn 'Z' + 1)
-                (\({ x, y } as coords) ->
+                (Char.toCode 'Z' - Char.toCode 'A' + 1)
+                (\position ->
                     let
-                        position =
-                            Cell.positionFrom coords
+                        { x, y } =
+                            Position.toXY position
                     in
                     case ( x, y ) of
                         ( 0, 0 ) ->
                             Cell.heading position ""
 
                         ( _, 0 ) ->
-                            Cell.heading position (String.fromChar (Cell.columnToChar x))
+                            Cell.heading position (String.fromChar position.column)
 
                         ( 0, _ ) ->
-                            Cell.heading position (String.fromInt y)
+                            Cell.heading position (String.fromInt position.row)
 
                         _ ->
                             Cell.empty position
@@ -79,19 +80,13 @@ updateCell cell value model =
         position =
             Cell.position cell
     in
-    { model
-        | cells =
-            Matrix.set
-                { x = position.column, y = position.row }
-                (Cell.fromString position value)
-                model.cells
-    }
+    { model | cells = Matrix.set position (Cell.fromString position value) model.cells }
 
 
 getCell : Position -> Model -> Cell
 getCell position model =
     model.cells
-        |> Matrix.get { x = position.column, y = position.row }
+        |> Matrix.get position
         |> Maybe.withDefault (Cell.empty position)
 
 
@@ -149,19 +144,23 @@ update msg model =
 
 view : Model -> Html Msg
 view model =
+    let
+        get =
+            \coord -> Matrix.get coord model.cells
+    in
     Keyed.node "div"
         []
         (model.cells
             |> Matrix.toList
             |> List.map
                 (\cell ->
-                    viewCell model.editing cell
+                    viewCell model.editing get cell
                 )
         )
 
 
-viewCell : Maybe ( Cell, String ) -> Cell -> ( String, Html Msg )
-viewCell editing cell =
+viewCell : Maybe ( Cell, String ) -> (Position -> Maybe Cell) -> Cell -> ( String, Html Msg )
+viewCell editing get cell =
     let
         key =
             Cell.toHtmlId cell
@@ -169,6 +168,7 @@ viewCell editing cell =
     ( key
     , Cell.view
         { editing = editing
+        , getCell = get
         , onInput = CellInput cell
         , onDblClick = CellClicked cell
         , onBlur = CellBlur cell

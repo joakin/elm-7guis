@@ -8,6 +8,7 @@ module Tasks.Cells.Matrix exposing
     )
 
 import Array exposing (Array)
+import Tasks.Cells.Position as Position exposing (Position)
 
 
 type Matrix a
@@ -19,7 +20,7 @@ empty =
     Matrix { rows = 0, cols = 0, contents = Array.empty }
 
 
-initialize : Int -> Int -> ({ x : Int, y : Int } -> a) -> Matrix a
+initialize : Int -> Int -> (Position -> a) -> Matrix a
 initialize rows cols fn =
     let
         size =
@@ -39,8 +40,12 @@ initialize rows cols fn =
         empty
 
 
-set : { x : Int, y : Int } -> a -> Matrix a -> Matrix a
-set ({ x, y } as coords) value ((Matrix matrix) as m) =
+set : Position -> a -> Matrix a -> Matrix a
+set pos value ((Matrix matrix) as m) =
+    let
+        { x, y } =
+            Position.toXY pos
+    in
     if
         (x >= 0 && x < matrix.cols)
             && (y >= 0 && y < matrix.rows)
@@ -48,20 +53,24 @@ set ({ x, y } as coords) value ((Matrix matrix) as m) =
         Matrix
             { matrix
                 | contents =
-                    Array.set (coordsToIdx coords matrix) value matrix.contents
+                    Array.set (coordsToIdx pos matrix) value matrix.contents
             }
 
     else
         m
 
 
-get : { x : Int, y : Int } -> Matrix a -> Maybe a
-get ({ x, y } as coords) (Matrix matrix) =
+get : Position -> Matrix a -> Maybe a
+get pos (Matrix matrix) =
+    let
+        { x, y } =
+            Position.toXY pos
+    in
     if
         (x >= 0 && x < matrix.cols)
             && (y >= 0 && y < matrix.rows)
     then
-        Array.get (coordsToIdx coords matrix) matrix.contents
+        Array.get (coordsToIdx pos matrix) matrix.contents
 
     else
         Nothing
@@ -72,12 +81,16 @@ toList (Matrix matrix) =
     Array.toList matrix.contents
 
 
-coordsToIdx : { x : Int, y : Int } -> { a | cols : Int } -> Int
-coordsToIdx { x, y } matrix =
+coordsToIdx : Position -> { a | cols : Int } -> Int
+coordsToIdx pos matrix =
+    let
+        { x, y } =
+            Position.toXY pos
+    in
     y * matrix.cols + x
 
 
-coordsFromIdx : Int -> { a | cols : Int, rows : Int } -> { x : Int, y : Int }
+coordsFromIdx : Int -> { a | cols : Int, rows : Int } -> Position
 coordsFromIdx i matrix =
     let
         x =
@@ -86,4 +99,4 @@ coordsFromIdx i matrix =
         y =
             i // matrix.cols
     in
-    { x = x, y = y }
+    Position.fromXY { x = x, y = y }
