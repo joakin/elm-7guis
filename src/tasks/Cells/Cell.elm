@@ -214,7 +214,9 @@ view options cell =
     in
     div
         ((if not isEditing && not isHeading then
-            [ onDoubleClick <| options.onDblClick cell ]
+            [ onDoubleClick <| options.onDblClick cell
+            , style "color" (getColorFromValue cell.value)
+            ]
 
           else
             []
@@ -265,6 +267,30 @@ toHtmlId cell =
 
 px n =
     String.fromInt n ++ "px"
+
+
+getColorFromValue : Type -> String
+getColorFromValue value =
+    case value of
+        Formula formula ->
+            case formula.expression of
+                EFloat f ->
+                    "blue"
+
+                _ ->
+                    "green"
+
+        Error _ _ ->
+            "red"
+
+        Text _ ->
+            "black"
+
+        Empty ->
+            "black"
+
+        Heading _ ->
+            "black"
 
 
 onKeysDown : msg -> Attribute msg
