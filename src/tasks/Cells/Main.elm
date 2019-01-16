@@ -73,8 +73,38 @@ init () =
                             Cell.empty position
                 )
       }
+        |> setInitialCells
     , Cmd.none
     )
+
+
+setInitialCells : Model -> Model
+setInitialCells model =
+    let
+        initialCells : List ( Char, Int, String )
+        initialCells =
+            [ ( 'A', 1, "Who" )
+            , ( 'B', 1, "How much" )
+            , ( 'A', 2, "Jane" )
+            , ( 'B', 2, "=10" )
+            , ( 'A', 3, "John" )
+            , ( 'B', 3, "=8" )
+            , ( 'A', 4, "Maria" )
+            , ( 'B', 4, "=5.5" )
+            , ( 'A', 5, "Adam" )
+            , ( 'B', 5, "=13.4" )
+            , ( 'D', 1, "Total" )
+            , ( 'E', 1, "=sum(B2:B5)" )
+            , ( 'D', 2, "Average" )
+            , ( 'E', 2, "=div(sum(B2:B5), 5)" )
+            ]
+    in
+    List.foldl
+        (\( col, row, str ) m ->
+            updateCellFromString (Cell.empty (Position col row)) str m
+        )
+        model
+        initialCells
 
 
 
