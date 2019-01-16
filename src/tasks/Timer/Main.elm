@@ -53,14 +53,6 @@ update msg model =
             init ()
 
 
-getInfo { start, lastTick, total } =
-    let
-        elapsed =
-            toFloat (lastTick - start)
-    in
-    { elapsed = elapsed / 1000, progress = elapsed * 100 / total }
-
-
 view : Model -> Html Msg
 view ({ elapsed, total } as model) =
     let

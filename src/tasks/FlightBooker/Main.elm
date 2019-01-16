@@ -8,6 +8,19 @@ import Tasks.FlightBooker.FlightKind as FlightKind exposing (FlightKind(..))
 import Tasks.FlightBooker.ValidatedDate as Date exposing (ValidatedDate)
 
 
+main : Program () Model Msg
+main =
+    Browser.sandbox
+        { init = defaultForm
+        , update = update
+        , view = view
+        }
+
+
+
+-- TYPES
+
+
 type Model
     = Form BookingForm
     | Booked BookingForm
@@ -35,6 +48,10 @@ defaultForm =
         }
 
 
+
+-- UPDATE
+
+
 update : Msg -> Model -> Model
 update msg model =
     case ( model, msg ) of
@@ -52,6 +69,10 @@ update msg model =
 
         ( Booked bookingInfo, _ ) ->
             model
+
+
+
+-- VIEWS
 
 
 view : Model -> Html Msg
@@ -157,12 +178,3 @@ viewBooked { kind, from, to } =
                                 ++ Date.toString to
                    )
         ]
-
-
-main : Program () Model Msg
-main =
-    Browser.sandbox
-        { init = defaultForm
-        , update = update
-        , view = view
-        }

@@ -8,6 +8,19 @@ import Html.Keyed as Keyed
 import Ui exposing (..)
 
 
+main : Program () Model Msg
+main =
+    Browser.sandbox
+        { init = init
+        , update = update
+        , view = view
+        }
+
+
+
+-- TYPES
+
+
 type alias Model =
     { users : List ( Int, User )
     , selectedUser : Maybe Int
@@ -44,46 +57,6 @@ init =
         |> addUser (User "Emil" "Hans")
         |> addUser (User "Max" "Musterman")
         |> addUser (User "Roman" "Tisch")
-
-
-addUser : User -> Model -> Model
-addUser user model =
-    { model
-        | lastUserId = model.lastUserId + 1
-        , users = model.users ++ [ ( model.lastUserId, user ) ]
-    }
-
-
-updateUser : Int -> User -> Model -> Model
-updateUser id user model =
-    { model
-        | users =
-            List.map
-                (\( id_, user_ ) ->
-                    if id == id_ then
-                        ( id, user )
-
-                    else
-                        ( id_, user_ )
-                )
-                model.users
-    }
-
-
-removeUser : Int -> Model -> Model
-removeUser id model =
-    { model
-        | users =
-            List.filter
-                (\( id_, user_ ) ->
-                    if id == id_ then
-                        False
-
-                    else
-                        True
-                )
-                model.users
-    }
 
 
 update : Msg -> Model -> Model
@@ -132,6 +105,50 @@ update msg ({ users, selectedUser, nameInput, surnameInput } as model) =
                     { model | selectedUser = Nothing }
 
 
+
+-- USER
+
+
+addUser : User -> Model -> Model
+addUser user model =
+    { model
+        | lastUserId = model.lastUserId + 1
+        , users = model.users ++ [ ( model.lastUserId, user ) ]
+    }
+
+
+updateUser : Int -> User -> Model -> Model
+updateUser id user model =
+    { model
+        | users =
+            List.map
+                (\( id_, user_ ) ->
+                    if id == id_ then
+                        ( id, user )
+
+                    else
+                        ( id_, user_ )
+                )
+                model.users
+    }
+
+
+removeUser : Int -> Model -> Model
+removeUser id model =
+    { model
+        | users =
+            List.filter
+                (\( id_, user_ ) ->
+                    if id == id_ then
+                        False
+
+                    else
+                        True
+                )
+                model.users
+    }
+
+
 userToString : User -> String
 userToString { name, surname } =
     surname ++ ", " ++ name
@@ -143,7 +160,7 @@ valid name surname =
 
 
 
--- Views
+-- VIEWS
 
 
 view : Model -> Html Msg
@@ -223,16 +240,3 @@ view { users, selectedUser, filter, nameInput, surnameInput } =
 
 textInput attrs children =
     input ([ type_ "text", style "flex" "1", style "max-width" "100%" ] ++ attrs) children
-
-
-
--- Main
-
-
-main : Program () Model Msg
-main =
-    Browser.sandbox
-        { init = init
-        , update = update
-        , view = view
-        }

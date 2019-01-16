@@ -9,24 +9,17 @@ import Json.Decode as Decode
 import Ui exposing (..)
 
 
-type alias Id =
-    Int
+main : Program () Model Msg
+main =
+    Browser.sandbox
+        { init = init
+        , update = update
+        , view = view
+        }
 
 
-type alias Position =
-    { x : Int, y : Int }
 
-
-type alias Circle =
-    { x : Int, y : Int, radius : Int }
-
-
-type alias Circles =
-    List ( Id, Circle )
-
-
-type alias Modal =
-    Int
+-- TYPES
 
 
 type alias Model =
@@ -39,6 +32,22 @@ type alias Model =
     }
 
 
+type alias Circles =
+    List ( Id, Circle )
+
+
+type alias Circle =
+    { x : Int, y : Int, radius : Int }
+
+
+type alias Id =
+    Int
+
+
+type alias Modal =
+    Int
+
+
 type Msg
     = CanvasClick ClickInfo
     | CircleClick Id
@@ -47,13 +56,16 @@ type Msg
     | Redo
 
 
-main : Program () Model Msg
-main =
-    Browser.sandbox
-        { init = init
-        , update = update
-        , view = view
-        }
+type alias ClickInfo =
+    { pagePos : Position, offsetPos : { left : Int, top : Int } }
+
+
+type alias Position =
+    { x : Int, y : Int }
+
+
+
+-- UPDATE
 
 
 init : Model
@@ -68,33 +80,64 @@ init =
         |> saveHistory
 
 
-addCircle : Position -> Model -> Model
-addCircle { x, y } ({ circles, lastId } as model) =
+update : Msg -> Model -> Model
+update msg ({ selectedCircle, circles } as model) =
+    case msg of
+        CanvasClick { offsetPos, pagePos } ->
+            case selectedCircle of
+                Just id ->
+                    clearSelectionAndModal model
+
+                Nothing ->
+                    let
+                        pos =
+                            { x = pagePos.x - offsetPos.left
+                            , y = pagePos.y - offsetPos.top
+                            }
+                    in
+                    addCircle pos model
+                        |> saveHistory
+
+        CircleClick id ->
+            case getCircle id circles of
+                Just circle ->
+                    { model
+                        | selectedCircle = Just id
+                        , modal = Just circle.radius
+                    }
+                        |> saveHistory
+
+                Nothing ->
+                    model
+
+        RadiusInput id str ->
+            case String.toInt str of
+                Just radius ->
+                    { model | circles = updateCircleRadius id radius circles }
+                        |> replaceHistory
+
+                Nothing ->
+                    model
+
+        Undo ->
+            undo model
+                |> clearSelectionAndModal
+
+        Redo ->
+            redo model
+                |> clearSelectionAndModal
+
+
+clearSelectionAndModal : Model -> Model
+clearSelectionAndModal model =
     { model
-        | circles = circles ++ [ ( lastId, { x = x, y = y, radius = 10 } ) ]
-        , lastId = lastId + 1
+        | selectedCircle = Nothing
+        , modal = Nothing
     }
 
 
-getCircle : Id -> Circles -> Maybe Circle
-getCircle id circles =
-    circles
-        |> List.filter (\( id_, circle ) -> id == id_)
-        |> List.map (\( id_, circle ) -> circle)
-        |> List.head
 
-
-updateCircleRadius : Id -> Int -> Circles -> Circles
-updateCircleRadius id radius circles =
-    circles
-        |> List.map
-            (\( id_, circle ) ->
-                if id == id_ then
-                    ( id_, { circle | radius = radius } )
-
-                else
-                    ( id_, circle )
-            )
+-- HISTORY
 
 
 saveHistory : Model -> Model
@@ -165,65 +208,41 @@ redo model =
             model
 
 
-clearSelectionAndModal : Model -> Model
-clearSelectionAndModal model =
+
+-- CIRCLES
+
+
+addCircle : Position -> Model -> Model
+addCircle { x, y } ({ circles, lastId } as model) =
     { model
-        | selectedCircle = Nothing
-        , modal = Nothing
+        | circles = circles ++ [ ( lastId, { x = x, y = y, radius = 10 } ) ]
+        , lastId = lastId + 1
     }
 
 
-update : Msg -> Model -> Model
-update msg ({ selectedCircle, circles } as model) =
-    -- let
-    --     _ =
-    --         Debug.log "msg,model" ( msg, model )
-    -- in
-    -- Debug.log "model result: " <|
-    case msg of
-        CanvasClick { offsetPos, pagePos } ->
-            case selectedCircle of
-                Just id ->
-                    clearSelectionAndModal model
+getCircle : Id -> Circles -> Maybe Circle
+getCircle id circles =
+    circles
+        |> List.filter (\( id_, circle ) -> id == id_)
+        |> List.map (\( id_, circle ) -> circle)
+        |> List.head
 
-                Nothing ->
-                    let
-                        pos =
-                            { x = pagePos.x - offsetPos.left
-                            , y = pagePos.y - offsetPos.top
-                            }
-                    in
-                    addCircle pos model
-                        |> saveHistory
 
-        CircleClick id ->
-            case getCircle id circles of
-                Just circle ->
-                    { model
-                        | selectedCircle = Just id
-                        , modal = Just circle.radius
-                    }
-                        |> saveHistory
+updateCircleRadius : Id -> Int -> Circles -> Circles
+updateCircleRadius id radius circles =
+    circles
+        |> List.map
+            (\( id_, circle ) ->
+                if id == id_ then
+                    ( id_, { circle | radius = radius } )
 
-                Nothing ->
-                    model
+                else
+                    ( id_, circle )
+            )
 
-        RadiusInput id str ->
-            case String.toInt str of
-                Just radius ->
-                    { model | circles = updateCircleRadius id radius circles }
-                        |> replaceHistory
 
-                Nothing ->
-                    model
 
-        Undo ->
-            undo model
-                |> clearSelectionAndModal
-
-        Redo ->
-            redo model
-                |> clearSelectionAndModal
+-- VIEWS
 
 
 view : Model -> Html Msg
@@ -322,11 +341,7 @@ viewModal maybeId maybeModal =
 
 
 
--- Decoders
-
-
-type alias ClickInfo =
-    { pagePos : Position, offsetPos : { left : Int, top : Int } }
+-- DECODERS
 
 
 clickDecoder msg =

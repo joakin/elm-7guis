@@ -113,10 +113,6 @@ setInitialCells model =
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
-    -- let
-    --     _ =
-    --         Debug.log "msg" msg
-    -- in
     case msg of
         CellClicked cell ->
             ( { model | editing = Just ( cell, Cell.toEditableString cell ) }
