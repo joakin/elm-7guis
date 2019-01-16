@@ -14,6 +14,7 @@ import Dict exposing (Dict)
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import Html.Lazy exposing (lazy6)
 import Json.Decode as Decode
 import Parser
 import Regex exposing (Regex)
@@ -180,6 +181,11 @@ cellHeight =
 
 view : ViewOptions msg -> Cell -> Html msg
 view options cell =
+    lazy6 view_ options.editing options.onInput options.onDblClick options.onBlur options.onEnd cell
+
+
+view_ : Maybe ( Cell, String ) -> (Cell -> String -> msg) -> (Cell -> msg) -> (Cell -> msg) -> (Cell -> msg) -> Cell -> Html msg
+view_ editing onInput_ onDblClick onBlur_ onEnd cell =
     let
         { x, y } =
             Position.toXY cell.position
@@ -193,12 +199,12 @@ view options cell =
                     False
 
         isEditing =
-            options.editing
+            editing
                 |> Maybe.map (\( editingCell, _ ) -> cell.position == editingCell.position)
                 |> Maybe.withDefault False
 
         editingValue =
-            options.editing
+            editing
                 |> Maybe.map (\( _, editingContents ) -> editingContents)
                 |> Maybe.withDefault ""
 
@@ -214,7 +220,7 @@ view options cell =
     in
     div
         ((if not isEditing && not isHeading then
-            [ onDoubleClick <| options.onDblClick cell
+            [ onDoubleClick <| onDblClick cell
             , style "color" (getColorFromValue cell.value)
             ]
 
@@ -246,9 +252,9 @@ view options cell =
                     ++ [ style "top" (px 0)
                        , style "left" (px 0)
                        , id <| toHtmlId cell
-                       , onInput <| options.onInput cell
-                       , onKeysDown <| options.onEnd cell
-                       , onBlur <| options.onBlur cell
+                       , onInput <| onInput_ cell
+                       , onKeysDown <| onEnd cell
+                       , onBlur <| onBlur_ cell
                        , style "z-index" "10"
                        , value <| editingValue
                        ]
