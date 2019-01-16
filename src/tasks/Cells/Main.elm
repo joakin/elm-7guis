@@ -74,20 +74,8 @@ init () =
     )
 
 
-updateCell : Cell -> String -> Model -> Model
-updateCell cell value model =
-    let
-        position =
-            Cell.position cell
-    in
-    { model | cells = Matrix.set position (Cell.fromString position value) model.cells }
 
-
-getCell : Position -> Model -> Cell
-getCell position model =
-    model.cells
-        |> Matrix.get position
-        |> Maybe.withDefault (Cell.empty position)
+-- UPDATE
 
 
 update : Msg -> Model -> ( Model, Cmd Msg )
@@ -98,7 +86,7 @@ update msg model =
     -- in
     case msg of
         CellClicked cell ->
-            ( { model | editing = Just ( cell, Cell.toString cell ) }
+            ( { model | editing = Just ( cell, Cell.toEditableString cell ) }
             , Dom.focus (Cell.toHtmlId cell)
                 |> Task.attempt (\_ -> Noop)
             )
@@ -106,7 +94,7 @@ update msg model =
         CellInput cell input ->
             ( case model.editing of
                 Just ( editingCell, s ) ->
-                    if cell |> Cell.isAtSamePositionThan editingCell then
+                    if cell.position == editingCell.position then
                         { model | editing = Just ( cell, input ) }
 
                     else
@@ -120,7 +108,7 @@ update msg model =
         CellBlur cell ->
             ( case model.editing of
                 Just ( editingCell, input ) ->
-                    if cell |> Cell.isAtSamePositionThan editingCell then
+                    if cell.position == editingCell.position then
                         { model | editing = Nothing }
                             |> updateCell cell input
 
@@ -142,25 +130,36 @@ update msg model =
             ( model, Cmd.none )
 
 
-view : Model -> Html Msg
-view model =
+updateCell : Cell -> String -> Model -> Model
+updateCell cell value model =
     let
         get =
             \coord -> Matrix.get coord model.cells
     in
+    { model
+        | cells =
+            Matrix.set cell.position
+                (Cell.fromString get cell.position value)
+                model.cells
+    }
+
+
+
+-- VIEW
+
+
+view : Model -> Html Msg
+view model =
     Keyed.node "div"
         []
         (model.cells
             |> Matrix.toList
-            |> List.map
-                (\cell ->
-                    viewCell model.editing get cell
-                )
+            |> List.map (viewCell model.editing)
         )
 
 
-viewCell : Maybe ( Cell, String ) -> (Position -> Maybe Cell) -> Cell -> ( String, Html Msg )
-viewCell editing get cell =
+viewCell : Maybe ( Cell, String ) -> Cell -> ( String, Html Msg )
+viewCell editing cell =
     let
         key =
             Cell.toHtmlId cell
@@ -168,11 +167,10 @@ viewCell editing get cell =
     ( key
     , Cell.view
         { editing = editing
-        , getCell = get
-        , onInput = CellInput cell
-        , onDblClick = CellClicked cell
-        , onBlur = CellBlur cell
-        , onEnd = CellInputEnd cell
+        , onInput = CellInput
+        , onDblClick = CellClicked
+        , onBlur = CellBlur
+        , onEnd = CellInputEnd
         }
         cell
     )

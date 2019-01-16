@@ -1,4 +1,4 @@
-module Tasks.Cells.Position exposing (Position, fromXY, toXY)
+module Tasks.Cells.Position exposing (Position, fromXY, toString, toXY)
 
 
 type alias Position =
@@ -15,6 +15,11 @@ fromXY { x, y } =
 toXY : Position -> { x : Int, y : Int }
 toXY { column, row } =
     { x = charToColumn column, y = row }
+
+
+toString : Position -> String
+toString position =
+    String.fromInt position.row ++ "|" ++ String.fromChar position.column
 
 
 columnToChar col =

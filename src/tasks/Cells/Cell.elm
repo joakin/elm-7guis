@@ -1,13 +1,11 @@
 module Tasks.Cells.Cell exposing
     ( Cell
+    , dependencies
     , empty
     , fromString
     , heading
-    , isAtSamePositionThan
-    , position
-    , toDisplayString
+    , toEditableString
     , toHtmlId
-    , toString
     , view
     )
 
@@ -29,49 +27,74 @@ import Tasks.Cells.Position as Position exposing (Position)
 
 type alias Cell =
     { position : Position
-    , contents : CellContents
+    , value : Type
     }
 
 
-type CellContents
-    = Content Contents
+type Type
+    = Formula { expression : Expression, dependencies : List Position, result : Maybe Float }
     | Error String (List Parser.DeadEnd)
+    | Text String
     | Empty
     | Heading String
 
 
-position : Cell -> Position
-position cell =
-    cell.position
 
-
-isAtSamePositionThan : Cell -> Cell -> Bool
-isAtSamePositionThan cell1 cell2 =
-    cell1.position == cell2.position
+-- CREATING CELLS
 
 
 heading : Position -> String -> Cell
 heading pos s =
-    { position = pos, contents = Heading s }
+    { position = pos, value = Heading s }
 
 
 empty : Position -> Cell
 empty pos =
-    { position = pos, contents = Empty }
+    { position = pos, value = Empty }
 
 
-toDisplayString : (Position -> Maybe Cell) -> Cell -> String
-toDisplayString getCell { contents } =
-    case contents of
-        Content content ->
-            case content of
-                Expr expr ->
-                    evaluate getCell expr
-                        |> Maybe.map String.fromFloat
-                        |> Maybe.withDefault "#NAN#"
+fromString : (Position -> Maybe Cell) -> Position -> String -> Cell
+fromString getCell pos input_ =
+    { position = pos
+    , value = parse getCell <| String.trim input_
+    }
 
-                Text txt ->
-                    txt
+
+parse : (Position -> Maybe Cell) -> String -> Type
+parse getCell input =
+    if String.isEmpty input then
+        Empty
+
+    else
+        case Parser.parseContents input of
+            Ok (Parser.Text str) ->
+                Text str
+
+            Ok (Parser.Expr expr) ->
+                Formula
+                    { expression = expr
+                    , result = evaluate getCell expr
+                    , dependencies = getDependenciesFromExpression expr
+                    }
+
+            Err errs ->
+                Error input errs
+
+
+
+-- CONVERTING CELLS TO STRING
+
+
+toDisplayString : Cell -> String
+toDisplayString { value } =
+    case value of
+        Formula formula ->
+            formula.result
+                |> Maybe.map String.fromFloat
+                |> Maybe.withDefault "#NAN#"
+
+        Text txt ->
+            txt
 
         Error input errors ->
             "#ERROR# " ++ input
@@ -83,18 +106,14 @@ toDisplayString getCell { contents } =
             s
 
 
-toString : Cell -> String
-toString { contents } =
-    case contents of
-        Content content ->
-            (case content of
-                Expr expr ->
-                    "="
+toEditableString : Cell -> String
+toEditableString { value } =
+    case value of
+        Formula formula ->
+            "=" ++ formulaToString formula.expression
 
-                _ ->
-                    ""
-            )
-                ++ contentToString content
+        Text txt ->
+            txt
 
         Error input errors ->
             input
@@ -106,62 +125,34 @@ toString { contents } =
             s
 
 
-contentToString : Contents -> String
-contentToString content =
-    case content of
-        Expr expr ->
-            case expr of
-                EFloat f ->
-                    String.fromFloat f
+formulaToString : Expression -> String
+formulaToString expr =
+    case expr of
+        EFloat f ->
+            String.fromFloat f
 
-                EApplication { name, args } ->
-                    name ++ "(" ++ String.join ", " (List.map (Expr >> contentToString) args) ++ ")"
+        EApplication { name, args } ->
+            name ++ "(" ++ String.join ", " (List.map formulaToString args) ++ ")"
 
-                ECoord { row, column } ->
-                    String.cons column <| String.fromInt row
+        ECoord { row, column } ->
+            String.cons column <| String.fromInt row
 
-                ERange { from, to } ->
-                    (String.cons from.column <| String.fromInt from.row)
-                        ++ ":"
-                        ++ (String.cons to.column <| String.fromInt to.row)
-
-        Text s ->
-            s
+        ERange { from, to } ->
+            (String.cons from.column <| String.fromInt from.row)
+                ++ ":"
+                ++ (String.cons to.column <| String.fromInt to.row)
 
 
-fromString : Position -> String -> Cell
-fromString pos input_ =
-    { position = pos
-    , contents = parse <| String.trim input_
-    }
 
-
-parse : String -> CellContents
-parse input =
-    if String.isEmpty input then
-        Empty
-
-    else
-        case Parser.parseContents input of
-            Ok contents ->
-                Content contents
-
-            Err errs ->
-                Error input errs
-
-
-toHtmlId : Cell -> String
-toHtmlId cell =
-    "cell-" ++ String.fromInt cell.position.row ++ "|" ++ String.fromChar cell.position.column
+-- VIEW
 
 
 type alias ViewOptions msg =
     { editing : Maybe ( Cell, String )
-    , getCell : Position -> Maybe Cell
-    , onInput : String -> msg
-    , onDblClick : msg
-    , onBlur : msg
-    , onEnd : msg
+    , onInput : Cell -> String -> msg
+    , onDblClick : Cell -> msg
+    , onBlur : Cell -> msg
+    , onEnd : Cell -> msg
     }
 
 
@@ -174,13 +165,13 @@ cellHeight =
 
 
 view : ViewOptions msg -> Cell -> Html msg
-view options ({ contents } as cell) =
+view options cell =
     let
         { x, y } =
             Position.toXY cell.position
 
         isHeading =
-            case contents of
+            case cell.value of
                 Heading _ ->
                     True
 
@@ -189,7 +180,7 @@ view options ({ contents } as cell) =
 
         isEditing =
             options.editing
-                |> Maybe.map (\( editingCell, _ ) -> cell |> isAtSamePositionThan editingCell)
+                |> Maybe.map (\( editingCell, _ ) -> cell.position == editingCell.position)
                 |> Maybe.withDefault False
 
         editingValue =
@@ -209,7 +200,7 @@ view options ({ contents } as cell) =
     in
     div
         ((if not isEditing && not isHeading then
-            [ onDoubleClick options.onDblClick ]
+            [ onDoubleClick <| options.onDblClick cell ]
 
           else
             []
@@ -239,9 +230,9 @@ view options ({ contents } as cell) =
                     ++ [ style "top" (px 0)
                        , style "left" (px 0)
                        , id <| toHtmlId cell
-                       , onInput options.onInput
-                       , onKeysDown options.onEnd
-                       , onBlur options.onBlur
+                       , onInput <| options.onInput cell
+                       , onKeysDown <| options.onEnd cell
+                       , onBlur <| options.onBlur cell
                        , style "z-index" "10"
                        , value <| editingValue
                        ]
@@ -249,8 +240,13 @@ view options ({ contents } as cell) =
                 []
 
           else
-            text <| toDisplayString options.getCell cell
+            text <| toDisplayString cell
         ]
+
+
+toHtmlId : Cell -> String
+toHtmlId cell =
+    "cell-" ++ Position.toString cell.position
 
 
 px n =
@@ -288,8 +284,38 @@ escapeKeyCode =
 
 
 
--- Evaluation
--- TODO: Cache matrix evaluations somehow
+-- DEPENDENCIES
+
+
+dependencies : Cell -> List Position
+dependencies cell =
+    case cell.value of
+        Formula formula ->
+            formula.dependencies
+
+        _ ->
+            []
+
+
+getDependenciesFromExpression : Expression -> List Position
+getDependenciesFromExpression expr =
+    case expr of
+        EFloat f ->
+            []
+
+        ECoord pos ->
+            [ pos ]
+
+        ERange range ->
+            expandRange range
+
+        EApplication { name, args } ->
+            args
+                |> List.concatMap getDependenciesFromExpression
+
+
+
+-- EVALUATION
 
 
 evaluate : (Position -> Maybe Cell) -> Expression -> Maybe Float
@@ -326,39 +352,6 @@ evaluate get expr =
                     Nothing
 
 
-combineMaybes : List (Maybe a) -> Maybe (List a)
-combineMaybes maybes =
-    let
-        step e acc =
-            case e of
-                Nothing ->
-                    Nothing
-
-                Just x ->
-                    Maybe.map ((::) x) acc
-    in
-    List.foldr step (Just []) maybes
-
-
-expandRange : Range -> List Position
-expandRange { from, to } =
-    let
-        ( from_, to_ ) =
-            ( Position.toXY from, Position.toXY to )
-
-        columns =
-            List.range from_.x to_.x
-
-        rows =
-            List.range from.row to.row
-    in
-    columns
-        |> List.concatMap
-            (\x ->
-                rows |> List.map (\y -> Position.fromXY { x = x, y = y })
-            )
-
-
 evaluateArgument : (Position -> Maybe Cell) -> Expression -> List (Maybe Float)
 evaluateArgument get arg =
     case arg of
@@ -375,15 +368,10 @@ evaluateArgument get arg =
 
 
 evaluateCell : (Position -> Maybe Cell) -> Cell -> Maybe Float
-evaluateCell get { contents } =
-    case contents of
-        Content content ->
-            case content of
-                Expr expr_ ->
-                    evaluate get expr_
-
-                _ ->
-                    Nothing
+evaluateCell get { value } =
+    case value of
+        Formula formula ->
+            evaluate get formula.expression
 
         _ ->
             Nothing
@@ -441,3 +429,36 @@ functions =
             (\list -> Just <| List.foldl (+) 0 list)
         |> Dict.insert "prod"
             (\list -> Just <| List.foldl (*) 1 list)
+
+
+expandRange : Range -> List Position
+expandRange { from, to } =
+    let
+        ( from_, to_ ) =
+            ( Position.toXY from, Position.toXY to )
+
+        columns =
+            List.range from_.x to_.x
+
+        rows =
+            List.range from.row to.row
+    in
+    columns
+        |> List.concatMap
+            (\x ->
+                rows |> List.map (\y -> Position.fromXY { x = x, y = y })
+            )
+
+
+combineMaybes : List (Maybe a) -> Maybe (List a)
+combineMaybes maybes =
+    let
+        step e acc =
+            case e of
+                Nothing ->
+                    Nothing
+
+                Just x ->
+                    Maybe.map ((::) x) acc
+    in
+    List.foldr step (Just []) maybes
