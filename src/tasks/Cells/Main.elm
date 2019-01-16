@@ -11,6 +11,7 @@ import Json.Decode as Decode
 import Task
 import Tasks.Cells.Cell as Cell exposing (Cell)
 import Tasks.Cells.Cell.Parser exposing (Contents, Expression)
+import Tasks.Cells.Dependencies as Dependencies exposing (Dependencies)
 import Tasks.Cells.Matrix as Matrix exposing (Matrix)
 import Tasks.Cells.Position as Position exposing (Position)
 
@@ -23,6 +24,7 @@ import Tasks.Cells.Position as Position exposing (Position)
 -}
 type alias Model =
     { cells : Matrix Cell
+    , dependencies : Dependencies
     , editing : Maybe ( Cell, String )
     }
 
@@ -48,6 +50,7 @@ main =
 init : () -> ( Model, Cmd Msg )
 init () =
     ( { editing = Nothing
+      , dependencies = Dependencies.empty
       , cells =
             Matrix.initialize 100
                 (Char.toCode 'Z' - Char.toCode 'A' + 1)
@@ -110,7 +113,7 @@ update msg model =
                 Just ( editingCell, input ) ->
                     if cell.position == editingCell.position then
                         { model | editing = Nothing }
-                            |> updateCell cell input
+                            |> updateCellFromString cell input
 
                     else
                         model
@@ -130,18 +133,55 @@ update msg model =
             ( model, Cmd.none )
 
 
-updateCell : Cell -> String -> Model -> Model
-updateCell cell value model =
+updateCellFromString : Cell -> String -> Model -> Model
+updateCellFromString cell value model =
     let
         get =
             \coord -> Matrix.get coord model.cells
+
+        newCell =
+            Cell.fromString get cell.position value
+
+        newDependencies =
+            Dependencies.updateDependenciesFor cell.position
+                { old = Cell.dependencies cell
+                , new = Cell.dependencies newCell
+                }
+                model.dependencies
     in
     { model
-        | cells =
-            Matrix.set cell.position
-                (Cell.fromString get cell.position value)
-                model.cells
+        | cells = Matrix.set cell.position newCell model.cells
+        , dependencies =
+            Dependencies.updateDependenciesFor cell.position
+                { old = Cell.dependencies cell
+                , new = Cell.dependencies newCell
+                }
+                model.dependencies
     }
+        |> propagateChanges cell.position
+
+
+propagateChanges : Position -> Model -> Model
+propagateChanges changedPosition model =
+    let
+        dependents =
+            Dependencies.getDependentsOn changedPosition model.dependencies
+                |> List.filterMap (\pos -> Matrix.get pos model.cells)
+    in
+    List.foldl refreshCell model dependents
+
+
+refreshCell : Cell -> Model -> Model
+refreshCell cell model =
+    let
+        get =
+            \coord -> Matrix.get coord model.cells
+
+        newCell =
+            Cell.refresh get cell
+    in
+    { model | cells = Matrix.set cell.position newCell model.cells }
+        |> propagateChanges cell.position
 
 
 

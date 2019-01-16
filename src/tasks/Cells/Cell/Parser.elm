@@ -11,16 +11,6 @@ import Set
 import Tasks.Cells.Position as Position exposing (Position)
 
 
-coord : Parser Position
-coord =
-    succeed
-        (\column row ->
-            Position (String.uncons column |> Maybe.map Tuple.first |> Maybe.withDefault 'A') row
-        )
-        |= (getChompedString <| succeed () |. chompIf Char.isUpper)
-        |= int
-
-
 type alias Range =
     { from : Position, to : Position }
 
@@ -28,9 +18,9 @@ type alias Range =
 range : Parser Range
 range =
     succeed Range
-        |= backtrackable coord
+        |= backtrackable Position.parser
         |. symbol ":"
-        |= coord
+        |= Position.parser
 
 
 float : Parser Float
@@ -74,7 +64,7 @@ expression =
     oneOf
         [ map EFloat float
         , map ERange range
-        , map ECoord coord
+        , map ECoord Position.parser
         , map EApplication application
         ]
 

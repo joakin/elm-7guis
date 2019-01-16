@@ -4,6 +4,7 @@ module Tasks.Cells.Cell exposing
     , empty
     , fromString
     , heading
+    , refresh
     , toEditableString
     , toHtmlId
     , view
@@ -81,6 +82,19 @@ parse getCell input =
                 Error input errs
 
 
+refresh : (Position -> Maybe Cell) -> Cell -> Cell
+refresh getCell cell =
+    case cell.value of
+        Formula formula ->
+            { cell
+                | value =
+                    Formula { formula | result = evaluate getCell formula.expression }
+            }
+
+        _ ->
+            cell
+
+
 
 -- CONVERTING CELLS TO STRING
 
@@ -134,13 +148,13 @@ formulaToString expr =
         EApplication { name, args } ->
             name ++ "(" ++ String.join ", " (List.map formulaToString args) ++ ")"
 
-        ECoord { row, column } ->
-            String.cons column <| String.fromInt row
+        ECoord position ->
+            Position.toString position
 
         ERange { from, to } ->
-            (String.cons from.column <| String.fromInt from.row)
+            Position.toString from
                 ++ ":"
-                ++ (String.cons to.column <| String.fromInt to.row)
+                ++ Position.toString to
 
 
 

@@ -1,4 +1,6 @@
-module Tasks.Cells.Position exposing (Position, fromXY, toString, toXY)
+module Tasks.Cells.Position exposing (Position, fromString, fromXY, parser, toString, toXY)
+
+import Parser exposing ((|.), (|=), Parser, chompIf, getChompedString, int, succeed)
 
 
 type alias Position =
@@ -18,8 +20,24 @@ toXY { column, row } =
 
 
 toString : Position -> String
-toString position =
-    String.fromInt position.row ++ "|" ++ String.fromChar position.column
+toString { column, row } =
+    String.cons column <| String.fromInt row
+
+
+fromString : String -> Maybe Position
+fromString input =
+    Parser.run parser input
+        |> Result.toMaybe
+
+
+parser : Parser Position
+parser =
+    succeed
+        (\column row ->
+            Position (String.uncons column |> Maybe.map Tuple.first |> Maybe.withDefault 'A') row
+        )
+        |= (getChompedString <| succeed () |. chompIf Char.isUpper)
+        |= int
 
 
 columnToChar col =
