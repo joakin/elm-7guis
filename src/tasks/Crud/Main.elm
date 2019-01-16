@@ -5,6 +5,7 @@ import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Html.Keyed as Keyed
+import Ui exposing (..)
 
 
 type alias Model =
@@ -222,22 +223,6 @@ view { users, selectedUser, filter, nameInput, surnameInput } =
 
 textInput attrs children =
     input ([ type_ "text", style "flex" "1", style "max-width" "100%" ] ++ attrs) children
-
-
-row attrs children =
-    div ([ style "display" "flex", style "flex-direction" "row" ] ++ attrs) children
-
-
-column attrs children =
-    div ([ style "display" "flex", style "flex-direction" "column" ] ++ attrs) children
-
-
-box attrs children =
-    div (style "padding" "0.5rem" :: attrs) children
-
-
-spacer =
-    div [ style "padding" "0.25rem" ] []
 
 
 

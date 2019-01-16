@@ -6,6 +6,7 @@ import Html.Attributes as Attributes exposing (..)
 import Html.Events exposing (..)
 import Html.Keyed as Keyed
 import Json.Decode as Decode
+import Ui exposing (..)
 
 
 type alias Id =
@@ -318,27 +319,6 @@ viewModal maybeId maybeModal =
 
         _ ->
             viewM [ style "opacity" "0" ] [] 0
-
-
-px : Int -> String
-px n =
-    String.fromInt n ++ "px"
-
-
-row attrs children =
-    div ([ style "display" "flex", style "flex-direction" "row" ] ++ attrs) children
-
-
-column attrs children =
-    div ([ style "display" "flex", style "flex-direction" "column" ] ++ attrs) children
-
-
-box attrs children =
-    div (style "padding" "0.5rem" :: attrs) children
-
-
-spacer =
-    div [ style "padding" "0.25rem" ] []
 
 
 

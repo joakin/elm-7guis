@@ -6,6 +6,7 @@ import Html exposing (..)
 import Html.Attributes as Attributes exposing (..)
 import Html.Events exposing (..)
 import Round exposing (round)
+import Ui exposing (..)
 
 
 main : Program () Model Msg
@@ -121,7 +122,3 @@ duration attrs total =
             ++ attrs
         )
         []
-
-
-box attrs children =
-    div (style "padding" "0.5rem" :: attrs) children

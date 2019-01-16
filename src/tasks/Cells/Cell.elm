@@ -25,6 +25,7 @@ import Tasks.Cells.Cell.Parser as Parser
         , Range
         )
 import Tasks.Cells.Position as Position exposing (Position)
+import Ui exposing (px)
 
 
 type alias Cell =
@@ -269,10 +270,6 @@ view_ editing onInput_ onDblClick onBlur_ onEnd cell =
 toHtmlId : Cell -> String
 toHtmlId cell =
     "cell-" ++ Position.toString cell.position
-
-
-px n =
-    String.fromInt n ++ "px"
 
 
 getColorFromValue : Type -> String

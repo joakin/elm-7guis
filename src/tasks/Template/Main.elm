@@ -4,6 +4,7 @@ import Browser
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import Ui exposing (..)
 
 
 type Model
@@ -37,7 +38,3 @@ view : Model -> Html Msg
 view model =
     div []
         []
-
-
-box attrs children =
-    div (style "padding" "0.5rem" :: attrs) children
