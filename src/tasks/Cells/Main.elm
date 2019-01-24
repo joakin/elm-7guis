@@ -16,12 +16,6 @@ import Tasks.Cells.Matrix as Matrix exposing (Matrix)
 import Tasks.Cells.Position as Position exposing (Position)
 
 
-{-| TODO:
-
-  - Keep track of dependencies in the matrix
-  - Update dependents on cell udpate
-
--}
 type alias Model =
     { cells : Matrix Cell
     , dependencies : Dependencies
