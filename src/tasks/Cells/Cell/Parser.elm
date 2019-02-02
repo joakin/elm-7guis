@@ -15,12 +15,14 @@ type alias Range =
     { from : Position, to : Position }
 
 
-range : Parser Range
-range =
-    succeed Range
-        |= backtrackable Position.parser
-        |. symbol ":"
-        |= Position.parser
+positionOrRange : Position -> Parser Expression
+positionOrRange pos =
+    oneOf
+        [ succeed (ERange << Range pos)
+            |. symbol ":"
+            |= Position.parser
+        , succeed (ECoord pos)
+        ]
 
 
 float : Parser Float
@@ -63,7 +65,7 @@ expression : Parser Expression
 expression =
     oneOf
         [ map EFloat float
-        , map ERange range
+        , Position.parser |> andThen positionOrRange
         , map ECoord Position.parser
         , map EApplication application
         ]
