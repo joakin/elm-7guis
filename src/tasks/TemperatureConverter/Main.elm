@@ -4,25 +4,38 @@ import Browser
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
+import Tasks.TemperatureConverter.Temperature as Temperature exposing (Temperature)
 
 
 type alias Model =
-    { celsius : String, farenheit : String }
+    { temperature : Temperature
+    , celsius : TemperatureInput
+    , farenheit : TemperatureInput
+    }
+
+
+type TemperatureInput
+    = Valid
+    | Invalid String
+
+
+type Unit
+    = Celsius
+    | Farenheit
 
 
 type Msg
-    = Update TemperatureUnit String
-
-
-type TemperatureUnit
-    = Celsius
-    | Farenheit
+    = Update Unit String
 
 
 main : Program () Model Msg
 main =
     Browser.sandbox
-        { init = { celsius = "", farenheit = "" }
+        { init =
+            { temperature = Temperature.fromCelsius 0
+            , celsius = Invalid ""
+            , farenheit = Invalid ""
+            }
         , update = update
         , view = view
         }
@@ -40,36 +53,59 @@ update msg model =
                     updateAsString temperatureUnit value model
 
 
-updateTemperature : TemperatureUnit -> Float -> Model -> Model
-updateTemperature temperatureUnit value { celsius, farenheit } =
-    case temperatureUnit of
-        Celsius ->
-            { celsius = String.fromFloat value
-            , farenheit = String.fromFloat <| value * (9 / 5) + 32
-            }
+updateTemperature : Unit -> Float -> Model -> Model
+updateTemperature temperatureUnit value model =
+    { temperature =
+        case temperatureUnit of
+            Celsius ->
+                Temperature.fromCelsius value
 
-        Farenheit ->
-            { celsius = String.fromFloat <| (value - 32) * (5 / 9)
-            , farenheit = String.fromFloat value
-            }
+            Farenheit ->
+                Temperature.fromFarenheit value
+
+    -- When the temperature input by the user is valid, mark both input fields
+    -- as valid to be updated
+    , celsius = Valid
+    , farenheit = Valid
+    }
 
 
-updateAsString : TemperatureUnit -> String -> Model -> Model
+updateAsString : Unit -> String -> Model -> Model
 updateAsString temperatureUnit value model =
     case temperatureUnit of
         Celsius ->
-            { model | celsius = value }
+            { model | celsius = Invalid value }
 
         Farenheit ->
-            { model | farenheit = value }
+            { model | farenheit = Invalid value }
 
 
 view : Model -> Html Msg
-view { celsius, farenheit } =
+view { temperature, celsius, farenheit } =
     div []
-        [ input [ type_ "text", value celsius, onInput (Update Celsius) ] []
+        [ temperatureInput celsius Celsius temperature
         , span [] [ text " Celsius" ]
         , span [] [ text " = " ]
-        , input [ type_ "text", value farenheit, onInput (Update Farenheit) ] []
+        , temperatureInput farenheit Farenheit temperature
         , span [] [ text " Farenheit" ]
         ]
+
+
+temperatureInput : TemperatureInput -> Unit -> Temperature -> Html Msg
+temperatureInput field unit temperature =
+    let
+        strValue =
+            case field of
+                Valid ->
+                    String.fromFloat <|
+                        case unit of
+                            Celsius ->
+                                Temperature.toCelsius temperature
+
+                            Farenheit ->
+                                Temperature.toFarenheit temperature
+
+                Invalid str ->
+                    str
+    in
+    input [ type_ "text", value strValue, onInput (Update unit) ] []
