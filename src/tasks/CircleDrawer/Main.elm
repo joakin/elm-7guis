@@ -111,12 +111,15 @@ update msg ({ selectedCircle, circles } as model) =
                     model
 
         RadiusInput id str ->
-            case String.toInt str of
-                Just radius ->
-                    { model | circles = updateCircleRadius id radius circles }
+            case ( model.modal, String.toInt str ) of
+                ( Just _, Just radius ) ->
+                    { model
+                        | circles = updateCircleRadius id radius circles
+                        , modal = Just radius
+                    }
                         |> replaceHistory
 
-                Nothing ->
+                _ ->
                     model
 
         Undo ->
