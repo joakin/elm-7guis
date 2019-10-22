@@ -1,4 +1,4 @@
-module Main exposing (main)
+module Tasks.Cells.Main exposing (main)
 
 import Array exposing (Array)
 import Browser

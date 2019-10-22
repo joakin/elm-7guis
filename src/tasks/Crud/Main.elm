@@ -1,4 +1,4 @@
-module Main exposing (main)
+module Tasks.Crud.Main exposing (main)
 
 import Browser
 import Html exposing (..)

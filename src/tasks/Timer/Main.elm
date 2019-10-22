@@ -1,11 +1,11 @@
-module Main exposing (main)
+module Tasks.Timer.Main exposing (main)
 
 import Browser
 import Browser.Events exposing (onAnimationFrameDelta)
 import Html exposing (..)
 import Html.Attributes as Attributes exposing (..)
 import Html.Events exposing (..)
-import Round exposing (round)
+import Round as R
 import Ui exposing (..)
 
 
@@ -70,7 +70,7 @@ view ({ elapsed, total } as model) =
             [ span [ style "margin-right" "0.5rem" ] [ text "Elapsed time:" ]
             , progressBar [ style "flex" "1" ] progress
             ]
-        , box [] [ text <| round 1 (elapsed / 1000) ++ "s" ]
+        , box [] [ text <| R.round 1 (elapsed / 1000) ++ "s" ]
         , box
             [ style "display" "flex"
             , style "align-items" "center"

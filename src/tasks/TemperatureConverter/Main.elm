@@ -1,4 +1,4 @@
-module Main exposing (main)
+module Tasks.TemperatureConverter.Main exposing (main)
 
 import Browser
 import Html exposing (..)

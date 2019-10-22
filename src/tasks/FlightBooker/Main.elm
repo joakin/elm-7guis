@@ -1,4 +1,4 @@
-module Main exposing (main)
+module Tasks.FlightBooker.Main exposing (main)
 
 import Browser
 import Html exposing (..)

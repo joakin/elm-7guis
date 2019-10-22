@@ -1,4 +1,4 @@
-module Main exposing (main)
+module Tasks.Counter.Main exposing (main)
 
 import Browser
 import Html exposing (button, div, input, text)
