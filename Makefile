@@ -1,11 +1,11 @@
 MINIFY:=0
 ELM_MAKE_FLAGS:=
 
-TASKS_HTML:=$(wildcard src/tasks/*/index.html)
-TASKS_HTML_COMPILED:=$(patsubst src/%,public/%,$(TASKS_HTML))
+TASKS_HTML:=$(wildcard src/Tasks/*/index.html)
+TASKS_HTML_COMPILED:=$(patsubst src/Tasks/%, public/tasks/%, $(TASKS_HTML))
 
-TASKS_ELM:=$(wildcard src/tasks/*/Main.elm)
-TASKS_JS:=$(patsubst src/%/Main.elm,public/%/elm.js,$(TASKS_ELM))
+TASKS_ELM:=$(wildcard src/Tasks/*/Main.elm)
+TASKS_JS:=$(patsubst src/Tasks/%/Main.elm, public/tasks/%/elm.js, $(TASKS_ELM))
 
 .PHONY=all
 all: $(TASKS_HTML_COMPILED) $(TASKS_JS) public/index.html
@@ -25,11 +25,11 @@ public/index.html: src/index.html public/index.css
 public/index.css: src/index.css
 	cp $< $@
 
-public/tasks/%/index.html: src/tasks/%/index.html
+public/tasks/%/index.html: src/Tasks/%/index.html
 	mkdir -p $(dir $@)
 	cp $< $@
 
-public/tasks/%/elm.js: src/tasks/%/Main.elm src/tasks/%/*.elm
+public/tasks/%/elm.js: src/Tasks/%/Main.elm src/Tasks/%/*.elm
 	@echo "Compiling $@ from $<"
 	elm make $< --output=$@ $(ELM_MAKE_FLAGS)
 	@if [ "$(MINIFY)" = "1" ]; then \
