@@ -85,7 +85,7 @@ update msg ({ selectedCircle, circles } as model) =
     case msg of
         CanvasClick { offsetPos, pagePos } ->
             case selectedCircle of
-                Just id ->
+                Just _ ->
                     clearSelectionAndModal model
 
                 Nothing ->
@@ -154,7 +154,7 @@ saveHistory model =
 replaceHistory : Model -> Model
 replaceHistory model =
     case model.history of
-        h :: hs ->
+        _ :: hs ->
             { model
                 | history = model.circles :: hs
                 , future = []
@@ -226,8 +226,8 @@ addCircle { x, y } ({ circles, lastId } as model) =
 getCircle : Id -> Circles -> Maybe Circle
 getCircle id circles =
     circles
-        |> List.filter (\( id_, circle ) -> id == id_)
-        |> List.map (\( id_, circle ) -> circle)
+        |> List.filter (\( id_, _ ) -> id == id_)
+        |> List.map (\( _, circle ) -> circle)
         |> List.head
 
 

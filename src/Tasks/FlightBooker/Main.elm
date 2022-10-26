@@ -67,7 +67,7 @@ update msg model =
         ( Form booking, Book ) ->
             Booked booking
 
-        ( Booked bookingInfo, _ ) ->
+        ( Booked _, _ ) ->
             model
 
 

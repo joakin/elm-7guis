@@ -20,9 +20,7 @@ type Status
 
 fromString : String -> ValidatedDate
 fromString value =
-    ValidatedDate
-        (parse value)
-        value
+    ValidatedDate (parse value) value
 
 
 parse : String -> Status
@@ -54,7 +52,7 @@ dateRegex =
 
 
 isValid : ValidatedDate -> Bool
-isValid (ValidatedDate date str) =
+isValid (ValidatedDate date _) =
     case date of
         Valid _ ->
             True
@@ -90,5 +88,5 @@ isEarlierThan (ValidatedDate later _) (ValidatedDate earlier _) =
 
 
 toString : ValidatedDate -> String
-toString (ValidatedDate date str) =
+toString (ValidatedDate _ str) =
     str
