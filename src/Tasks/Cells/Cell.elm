@@ -17,7 +17,6 @@ import Html.Events exposing (..)
 import Html.Lazy exposing (lazy6)
 import Json.Decode as Decode
 import Parser
-import Regex exposing (Regex)
 import Tasks.Cells.Cell.Parser as Parser
     exposing
         ( Contents(..)
@@ -112,7 +111,7 @@ toDisplayString { value } =
         Text txt ->
             txt
 
-        Error input errors ->
+        Error input _ ->
             "#ERROR# " ++ input
 
         Empty ->
@@ -131,7 +130,7 @@ toEditableString { value } =
         Text txt ->
             txt
 
-        Error input errors ->
+        Error input _ ->
             input
 
         Empty ->
@@ -277,7 +276,7 @@ getColorFromValue value =
     case value of
         Formula formula ->
             case formula.expression of
-                EFloat f ->
+                EFloat _ ->
                     "blue"
 
                 _ ->
@@ -343,7 +342,7 @@ dependencies cell =
 getDependenciesFromExpression : Expression -> List Position
 getDependenciesFromExpression expr =
     case expr of
-        EFloat f ->
+        EFloat _ ->
             []
 
         ECoord pos ->
@@ -352,7 +351,7 @@ getDependenciesFromExpression expr =
         ERange range ->
             expandRange range
 
-        EApplication { name, args } ->
+        EApplication { args } ->
             args
                 |> List.concatMap getDependenciesFromExpression
 
@@ -368,14 +367,9 @@ evaluate get expr =
             Just f
 
         ECoord pos ->
-            case get pos of
-                Just cell ->
-                    evaluateCell get cell
+            get pos |> Maybe.andThen (evaluateCell get)
 
-                Nothing ->
-                    Nothing
-
-        ERange { from, to } ->
+        ERange _ ->
             -- Ranges expand to nothing as a top level, only work as arguments
             Nothing
 
@@ -496,12 +490,15 @@ expandRange { from, to } =
 combineMaybes : List (Maybe a) -> Maybe (List a)
 combineMaybes maybes =
     let
-        step e acc =
-            case e of
-                Nothing ->
+        step ms acc =
+            case ms of
+                [] ->
+                    Just acc
+
+                Nothing :: _ ->
                     Nothing
 
-                Just x ->
-                    Maybe.map ((::) x) acc
+                (Just x) :: xs ->
+                    step xs (x :: acc)
     in
-    List.foldr step (Just []) maybes
+    step maybes []
