@@ -47,14 +47,14 @@ update msg model =
         Update temperatureUnit value ->
             case String.toFloat value of
                 Just num ->
-                    updateTemperature temperatureUnit num model
+                    updateValidTemperature temperatureUnit num
 
                 Nothing ->
-                    updateAsString temperatureUnit value model
+                    updateInvalidTemperature temperatureUnit value model
 
 
-updateTemperature : Unit -> Float -> Model -> Model
-updateTemperature temperatureUnit value model =
+updateValidTemperature : Unit -> Float -> Model
+updateValidTemperature temperatureUnit value =
     { temperature =
         case temperatureUnit of
             Celsius ->
@@ -70,8 +70,8 @@ updateTemperature temperatureUnit value model =
     }
 
 
-updateAsString : Unit -> String -> Model -> Model
-updateAsString temperatureUnit value model =
+updateInvalidTemperature : Unit -> String -> Model -> Model
+updateInvalidTemperature temperatureUnit value model =
     case temperatureUnit of
         Celsius ->
             { model | celsius = Invalid value }
