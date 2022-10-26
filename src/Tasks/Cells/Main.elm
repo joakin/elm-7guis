@@ -1,16 +1,13 @@
 module Tasks.Cells.Main exposing (main)
 
-import Array exposing (Array)
 import Browser
 import Browser.Dom as Dom
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
 import Html.Keyed as Keyed
-import Json.Decode as Decode
 import Task
 import Tasks.Cells.Cell as Cell exposing (Cell)
-import Tasks.Cells.Cell.Parser exposing (Contents, Expression)
 import Tasks.Cells.Dependencies as Dependencies exposing (Dependencies)
 import Tasks.Cells.Matrix as Matrix exposing (Matrix)
 import Tasks.Cells.Position as Position exposing (Position)
@@ -37,7 +34,7 @@ main =
         { init = init
         , update = update
         , view = view
-        , subscriptions = \model -> Sub.none
+        , subscriptions = \_ -> Sub.none
         }
 
 
@@ -116,7 +113,7 @@ update msg model =
 
         CellInput cell input ->
             ( case model.editing of
-                Just ( editingCell, s ) ->
+                Just ( editingCell, _ ) ->
                     if cell.position == editingCell.position then
                         { model | editing = Just ( cell, input ) }
 
@@ -162,7 +159,7 @@ updateCellFromString cell value model =
         newCell =
             Cell.fromString get cell.position value
 
-        newDependencies =
+        _ =
             Dependencies.updateDependenciesFor cell.position
                 { old = Cell.dependencies cell
                 , new = Cell.dependencies newCell

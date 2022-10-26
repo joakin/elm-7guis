@@ -36,7 +36,10 @@ parser =
         (\column row ->
             Position (String.uncons column |> Maybe.map Tuple.first |> Maybe.withDefault 'A') row
         )
-        |= (getChompedString <| succeed () |. chompIf Char.isUpper)
+        |= (getChompedString <|
+                succeed ()
+                    |. chompIf Char.isUpper
+           )
         |= int
 
 
